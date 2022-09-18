@@ -4,10 +4,11 @@ import pandas as pd
 import os
 import streamlit as st
 from streamlit_lottie import st_lottie, st_lottie_spinner
+from streamlit_autorefresh import st_autorefresh
 import xgboost
 import shap
 import matplotlib.pyplot as plt
-import pyautogui
+# import pyautogui
 import json
 import requests
 from PIL import Image
@@ -273,15 +274,16 @@ if summary == 9:
 if st.button('Browse Airbnb'):
     try:     
         url = f'https://www.airbnb.co.kr/s/{select_neighbourhood}--New-York--NY--United-States/homes?price_max={price*1386}&search_type=filter_change&room_types%5B%5D={select_roomtype}'
-        webbrowser.open_new_tab(url)
+        # webbrowser.open_new_tab(url)
+        webbrowser.open(url)
     except:
         st.warning('I guess you did not fill in all the information needed 🤔')
 
 
+# disable refresh feature since streamlit didn't support pyautogui yet.
 
-if st.button("Clear All"):
-    pyautogui.hotkey("ctrl","F5")
-    del result
+# if st.button("Clear All"):
+#     st_autorefresh(interval=2000, limit=2)
 
 
 
