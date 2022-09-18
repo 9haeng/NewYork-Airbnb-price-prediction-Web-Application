@@ -274,8 +274,7 @@ if summary == 9:
 if st.button('Browse Airbnb'):
     try:     
         url = f'https://www.airbnb.co.kr/s/{select_neighbourhood}--New-York--NY--United-States/homes?price_max={price*1386}&search_type=filter_change&room_types%5B%5D={select_roomtype}'
-        # webbrowser.open_new_tab(url)
-        webbrowser.open(url)
+        webbrowser.open_new_tab(url)
     except:
         st.warning('I guess you did not fill in all the information needed 🤔')
 
