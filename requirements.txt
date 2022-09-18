@@ -7,3 +7,4 @@ xgboost==0.90
 pyautogui==0.9.53
 matplotlib==3.6.0
 streamlit-lottie==0.0.3
+shap==0.41.0
