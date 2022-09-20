@@ -3,29 +3,15 @@ from time import sleep
 import pandas as pd
 import os
 import streamlit as st
-from streamlit_lottie import st_lottie, st_lottie_spinner
-from streamlit_autorefresh import st_autorefresh
 import xgboost
 import shap
 import matplotlib.pyplot as plt
-# import pyautogui
 import json
 import requests
 from PIL import Image
 import time
-import webbrowser
-
-def load_lottiefile(filepath: str):
-    with open(filepath, 'r') as f:
-        return json.load(f)
-
-lottie_loading = load_lottiefile('travel.json')
-
-def load_lottieurl(url: str):
-    r = requests.get(url)
-    if r.status_code != 200:
-        return None
-    return r.json()
+from bs4 import BeautifulSoup
+import urllib.request as req
 
 
 def data_transform(df_summary, df_final):
@@ -75,11 +61,20 @@ def predict_model(model, data):
     result = model.predict(data.values)[0]
     return result
 
+# getting current exchange rate between dollar and won.
 
+exc_rate_url = 'https://finance.naver.com/marketindex'
+res = req.urlopen(exc_rate_url)
+soup = BeautifulSoup(res, 'html.parser', from_encoding='euc-kr')
+dollar_to_won = int(str(soup.select('span.value')[0])[20:25].replace(',',''))
+
+# open dataset and ML model for prediction
 
 CSV_FILEPATH = os.path.join(os.getcwd(), 'airbnb_ML.csv') 
 model = pickle.load(open('model.sav', 'rb'))
 df = pd.read_csv(CSV_FILEPATH)
+
+# Streamlit layout
 
 st.set_page_config(page_title="Newyork Airbnb Price Predcition Web Service",
     page_icon="🗽",
@@ -101,6 +96,7 @@ if st.button('Guide'):
 neighbourhood_group = ['-','Bronx', 'Brooklyn', 'Manhattan', 'Queens', 'Staten Island']
 roomtype = ['-','Entire home/apt', 'Private room', 'Shared room']
 reviews_answer = ['-','Yes', "No thanks"]
+
 
 
 # To activate summary
@@ -143,7 +139,7 @@ elif choose_minimum_nights == reviews_answer[1]:
 choose_availability_365 = st.selectbox('Do you have the desired number of the total number of days bookable during the year?', reviews_answer)
 
 if choose_availability_365 == reviews_answer[2]:
-    choose_availability_365 = round(df['minimum_nights'].median(),2)
+    choose_availability_365 = round(df['availability_365'].mean())
     summary += 1
 elif choose_availability_365 == reviews_answer[1]:
     st.write('Please enter a value between 0 and 365 to calculate the popularity of the accommodation you are looking for.')
@@ -157,7 +153,7 @@ elif choose_availability_365 == reviews_answer[1]:
 choose_number_of_reviews = st.selectbox('Do you have the desired number of reviews for the accommodation you are looking for?', reviews_answer)
 
 if choose_number_of_reviews == reviews_answer[2]:
-    choose_number_of_reviews = round(df['number_of_reviews'].median(),2)
+    choose_number_of_reviews = round(df['number_of_reviews'].median())
     summary += 1
 elif choose_number_of_reviews == reviews_answer[1]:
     st.write('Please enter the desired number of reviews between 0 and 60.')
@@ -199,18 +195,20 @@ elif choose_calculated_host_listings == reviews_answer[1]:
 choose_days_since_last_review = st.selectbox('Do you have the desired number of days since last review for the accommodation you are looking for?', reviews_answer)
 
 if choose_days_since_last_review == reviews_answer[2]:
-    choose_days_since_last_review = round(df['days_since_last_review'].mean(),2)
+    choose_days_since_last_review = round(df['days_since_last_review'].mean())
     summary += 1
 elif choose_days_since_last_review == reviews_answer[1]:
     st.write('Please enter the desired number of days since last review between 0 and 365.')
     st.write("This value may be related to the popularity of the accommodation.")
     choose_days_since_last_review = st.number_input('FYI, 181 days passed since the last review was created for each accommodation on average.', min_value=0, max_value=365, format='%d')
-    st.write('You chose', round(choose_days_since_last_review,2), 'days passed since the last review.')
+    st.write('You chose', round(choose_days_since_last_review), 'days passed since the last review.')
     summary += 1
 
 if summary == 8:
 
-    st.header('This is a summary of all the information you have entered!')
+    st.header('This is a summary of all the information we received!')
+    st.write("Don't panic even if the values you didn't enter are shown in the review.")
+    st.write('Values you did not enter are replaced by mean or median values based on each data characteristic.')
     st.write('Please review whether you have filled in the information about the accommodation you want properly.')
 
     summary_list = [select_neighbourhood, select_roomtype, choose_minimum_nights, choose_availability_365, choose_number_of_reviews, 
@@ -247,42 +245,34 @@ if summary == 8:
     total = st.slider('If you drag this slider all the way to the right, we will predict the accommodation price very soon!', 0, 100, 1)
 
     if total == 100:
-        with st_lottie_spinner(lottie_loading, height=500):
-            time.sleep(3.5)
-            total = 0        
         summary += 1
 
 
 if summary == 9:
-   
     data_transform(df_summary, df_final)
-    predict_model(model, df_final)
-    # with st.spinner('Please wait...'):          
+    predict_model(model, df_final)     
     if result < 0:
         st.write('We could not predict the proper accommodation price based on the information entered.')
     else:
-        st.header('The estimated accommodation price based on the information entered is')
-        global price
-        price = round(result, 2)
-        st.write(price, '$')
+        with st.spinner('Please wait...'):   
+            st.header('The estimated accommodation price is')
+            global price
+            price = round(result)
+            won = price * dollar_to_won
+            st.write(price, '$', '/', won, '₩ (based on current exchange rate)')
+            # st.write(won,'₩')
 
-        feature_importance(model, df_final)
-        image = Image.open('feature_importance.png')
-        st.image(image, caption='Feature Importance based on information')
+            feature_importance(model, df_final)
+            image = Image.open('feature_importance.png')
+            st.image(image, caption='Feature Importance based on information')
 
+            if select_roomtype == 'Entire home/apt':
+                room_type = 'Entire%20home'
+            elif select_roomtype == 'Private room':
+                room_type = 'Private%20room'
+            elif select_roomtype == 'Shared room':
+                room_type = 'Shared%20room'
 
-if st.button('Browse Airbnb'):
-    try:     
-        url = f'https://www.airbnb.co.kr/s/{select_neighbourhood}--New-York--NY--United-States/homes?price_max={price*1386}&search_type=filter_change&room_types%5B%5D={select_roomtype}'
-        webbrowser.open_new_tab(url)
-    except:
-        st.warning('I guess you did not fill in all the information needed 🤔')
-
-
-# disable refresh feature since streamlit didn't support pyautogui yet.
-
-# if st.button("Clear All"):
-#     st_autorefresh(interval=2000, limit=2)
-
-
-
+            url = f'https://www.airbnb.co.kr/s/{select_neighbourhood}--New-York--NY--United-States/homes?price_max={price*1386}&search_type=filter_change&room_types%5B%5D={room_type}'
+            link = f'[Browse Airbnb ✈️]({url})'
+            st.markdown(link, unsafe_allow_html=True)
