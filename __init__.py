@@ -61,13 +61,6 @@ def predict_model(model, data):
     result = model.predict(data.values)[0]
     return result
 
-# getting current exchange rate between dollar and won.
-
-exc_rate_url = 'https://finance.naver.com/marketindex'
-res = req.urlopen(exc_rate_url)
-soup = BeautifulSoup(res, 'html.parser', from_encoding='euc-kr')
-dollar_to_won = int(str(soup.select('span.value')[0])[20:25].replace(',',''))
-
 # open dataset and ML model for prediction
 
 CSV_FILEPATH = os.path.join(os.getcwd(), 'airbnb_ML.csv') 
@@ -255,6 +248,13 @@ if summary == 9:
         st.write('We could not predict the proper accommodation price based on the information entered.')
     else:
         with st.spinner('Please wait...'):   
+            # getting current exchange rate between dollar and won.
+
+            exc_rate_url = 'https://finance.naver.com/marketindex'
+            res = req.urlopen(exc_rate_url)
+            soup = BeautifulSoup(res, 'html.parser', from_encoding='euc-kr')
+            dollar_to_won = int(str(soup.select('span.value')[0])[20:25].replace(',',''))
+
             st.header('The estimated accommodation price is')
             global price
             price = round(result)
