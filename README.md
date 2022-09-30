@@ -4,6 +4,8 @@
 
 에어비앤비 데이터셋 내 숙박 관련 데이터를 통한 숙박 가격을 예측하고, 입력한 조건에 맞는 숙소를 찾아주는 웹 애플리케이션 제작 프로젝트
 
+[웹 애플리케이션](https://9haeng-ml-web-application-using-streamlit---init---haed2h.streamlitapp.com/) 을 직접 사용해보길 희망하신다면 링크를 클릭해주세요.
+
 
 ## 프로젝트 목표
 ----
